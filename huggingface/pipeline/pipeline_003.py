@@ -1,4 +1,5 @@
-model_name = "nlptown/bert-base-multilingual-uncased-sentiment"
+# model_name = "nlptown/bert-base-multilingual-uncased-sentiment"
+model_name = "lxyuan/distilbert-base-multilingual-cased-sentiments-student"
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from transformers import pipeline
 
