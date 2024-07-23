@@ -9,7 +9,7 @@ train_y = train[:,1]
 # 标准化
 # 平均值
 mu = train_x.mean()
-# 标准差
+# 标准差 是方差的平方根
 sigma = train_x.std()
 def standardize(x):
     return (x - mu) / sigma
