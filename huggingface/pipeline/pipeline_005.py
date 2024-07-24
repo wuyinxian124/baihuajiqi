@@ -2,7 +2,7 @@
 # 加载需要认证的模型
 from transformers import AutoModelForSequenceClassification,AutoTokenizer,pipeline
 model_name = 'maidalun1020/bce-reranker-base_v1'
-access_token='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'
+access_token='token_id'
 model = AutoModelForSequenceClassification.from_pretrained(model_name,token=access_token)
 tokenizer = AutoTokenizer.from_pretrained(model_name,token=access_token)
 text_classification = pipeline('sentiment-analysis', model=model, tokenizer=tokenizer)
