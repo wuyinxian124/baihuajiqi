@@ -49,7 +49,7 @@ except mysql.connector.Error as err:
     exit(1)
 
 # 查询 lb_task 和 lb_task_link 表
-query_task = "SELECT task_id, tenant_id, status, exec_engine FROM lb_task WHERE status IN ('F', 'Y', 'O')"
+query_task = "SELECT task_id, tenant_id, status, exec_engine,cycle_unit FROM lb_task WHERE status IN ('F', 'Y', 'O','INVALID')"
 query_task_link = "SELECT task_from, task_to FROM lb_task_link"
 
 try:
@@ -144,8 +144,12 @@ for tenant_id, group in tenant_groups:
     no_dependency_file = os.path.join(tenant_dir, f"no_dependency_tasks_{len(no_dependency_task_ids)}.txt")
     with open(no_dependency_file, 'w') as f:
         for task_id in no_dependency_task_ids:
+            # 取相等的第一行
             task_info = df_task[df_task['task_id'] == task_id].iloc[0]
             if task_info['tenant_id'] == tenant_id:
-                f.write(f"{task_id} [{task_info['exec_engine']}]\n")
+                f.write(f"{task_id} [{task_info['exec_engine']}] {task_info['status']} {task_info['cycle_unit']}\n")
         for task_id, exec_engine in no_dependency_tasks:
-            f.write(f"{task_id} [{exec_engine}]\n")
+            # 取相等的第一行
+            task_info = df_task[df_task['task_id'] == task_id].iloc[0]
+            if task_info['tenant_id'] == tenant_id:
+                f.write(f"{task_id} [{task_info['exec_engine']}] {task_info['status']} {task_info['cycle_unit']}\n")
