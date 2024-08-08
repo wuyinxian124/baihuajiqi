@@ -44,6 +44,7 @@ db_config_unified = {
 try:
     # 连接到数据库实例1
     connection_unified = pymysql.connect(**db_config_unified)
+    connection_open = pymysql.connect(**db_config_open)
 except mysql.connector.Error as err:
     print(f"Error: {err}")
     exit(1)
@@ -51,9 +52,11 @@ except mysql.connector.Error as err:
 # 查询 lb_task 和 lb_task_link 表
 query_task = "SELECT task_id, tenant_id, status, exec_engine,cycle_unit FROM lb_task WHERE status IN ('F', 'Y', 'O','INVALID')"
 query_task_link = "SELECT task_from, task_to FROM lb_task_link"
+query_version_task = "SELECT task_id from task_version_info where used_version=1 and exec_engine='unified_scheduler'"
 
 try:
     df_task = pd.read_sql(query_task, connection_unified)
+    df_version_task = pd.read_sql(query_version_task, connection_open)
     df_task_link = pd.read_sql(query_task_link, connection_unified)
 except Exception as e:
     print(f"Error querying database: {e}")
@@ -64,6 +67,8 @@ connection_unified.close()
 
 # 过滤 lb_task_link 中无效的依赖关系
 valid_task_ids = set(df_task['task_id'])
+valid_version_task_ids = set(df_version_task['task_id'])
+
 df_task_link = df_task_link[
     df_task_link['task_from'].isin(valid_task_ids) &
     df_task_link['task_to'].isin(valid_task_ids)
@@ -129,6 +134,9 @@ for tenant_id, group in tenant_groups:
             dag_file = os.path.join(tenant_dir, f"dag_{dag_index}_tasks_{len(task_ids)}_{exec_engine_label}.txt")
             with open(dag_file, 'w') as f:
                 for task_id, exec_engine in zip(task_ids, exec_engines):
+                    if task_id not in valid_version_task_ids:
+                        print(f"任务 ID '{task_id}' 不在有效版本的任务 ID 集合中。")
+                        continue
                     f.write(f"{task_id} [{exec_engine}]\n")
             dag_index += 1
         else:
@@ -144,11 +152,17 @@ for tenant_id, group in tenant_groups:
     no_dependency_file = os.path.join(tenant_dir, f"no_dependency_tasks_{len(no_dependency_task_ids)}.txt")
     with open(no_dependency_file, 'w') as f:
         for task_id in no_dependency_task_ids:
+            if task_id not in valid_version_task_ids:
+                print(f"任务 ID '{task_id}' 不在有效版本的任务 ID 集合中。")
+                continue
             # 取相等的第一行
             task_info = df_task[df_task['task_id'] == task_id].iloc[0]
             if task_info['tenant_id'] == tenant_id:
                 f.write(f"{task_id} [{task_info['exec_engine']}] {task_info['status']} {task_info['cycle_unit']}\n")
         for task_id, exec_engine in no_dependency_tasks:
+            if task_id not in valid_version_task_ids:
+                print(f"任务 ID '{task_id}' 不在有效版本的任务 ID 集合中。")
+                continue
             # 取相等的第一行
             task_info = df_task[df_task['task_id'] == task_id].iloc[0]
             if task_info['tenant_id'] == tenant_id:
