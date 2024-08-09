@@ -4,12 +4,12 @@ from mysql.connector import Error
 import sys
 import pymysql
 
-if len(sys.argv) < 1:
-    print("Usage: python script.py <config_file> ")
+if len(sys.argv) < 2:
+    print("Usage: python script.py <config_file> tenant_id")
     sys.exit(1)
 
 config_file = sys.argv[1]
-
+specific_tenant_id = sys.argv[2]
 # 读取配置文件
 config = configparser.ConfigParser()
 config.read(config_file)
@@ -56,9 +56,9 @@ try:
         query = """
         SELECT task_id, cur_run_date, exec_engine, state
         FROM lb_task_run
-        WHERE exec_engine = 'unified_scheduler' AND state IN (2, 8) and tenant_id='1315051789'
+        WHERE exec_engine = 'unified_scheduler' AND state IN (2, 8) and tenant_id=%s
         """
-        cursor.execute(query)
+        cursor.execute(query,(specific_tenant_id))
         unified_tasks = cursor.fetchall()
 except pymysql.MySQLError as e:
     print(f"查询 unified 数据库时出错: {e}")
@@ -70,9 +70,9 @@ try:
             query = """
             SELECT task_id, cur_run_date, exec_engine, state
             FROM lb_task_run
-            WHERE task_id = %s AND cur_run_date = %s AND exec_engine = 'unified_scheduler' AND state NOT IN (2, 8) and tenant_id='1315051789'
+            WHERE task_id = %s AND cur_run_date = %s AND exec_engine = 'unified_scheduler' AND state NOT IN (2, 8) and tenant_id=%s
             """
-            cursor.execute(query, (task['task_id'], task['cur_run_date']))
+            cursor.execute(query, (task['task_id'], task['cur_run_date'],specific_tenant_id))
             open_task = cursor.fetchone()
 
             if open_task:
@@ -80,9 +80,9 @@ try:
                 update_query = """
                 UPDATE lb_task_run
                 SET state = 8
-                WHERE tenant_id='1315051789' and task_id = %s AND cur_run_date = %s
+                WHERE tenant_id=%s and task_id = %s AND cur_run_date = %s
                 """
-                cursor.execute(update_query, (task['task_id'], task['cur_run_date']))
+                cursor.execute(update_query, (task['task_id'], task['cur_run_date'],specific_tenant_id))
 
         open_connection.commit()
 except pymysql.MySQLError as e:

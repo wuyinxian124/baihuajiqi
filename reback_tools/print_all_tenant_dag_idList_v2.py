@@ -50,13 +50,14 @@ except mysql.connector.Error as err:
     exit(1)
 
 # 查询 lb_task 和 lb_task_link 表
-query_task = "SELECT task_id, tenant_id, status, exec_engine,cycle_unit FROM lb_task WHERE status IN ('F', 'Y', 'O','INVALID')"
+query_task = "SELECT task_id, tenant_id, status, exec_engine,cycle_unit FROM lb_task WHERE status IN ('F', 'Y', 'O','INVALID') and tenant_id=%s"
 query_task_link = "SELECT task_from, task_to FROM lb_task_link"
-query_version_task = "SELECT task_id from task_version_info where used_version=1 and exec_engine='unified_scheduler'"
+query_version_task = "SELECT task_id from task_version_info where used_version=1 and exec_engine='unified_scheduler' and tenant_id=%s"
+
 
 try:
-    df_task = pd.read_sql(query_task, connection_unified)
-    df_version_task = pd.read_sql(query_version_task, connection_open)
+    df_task = pd.read_sql(query_task, connection_unified,params=(specific_tenant_id,))
+    df_version_task = pd.read_sql(query_version_task, connection_open,params=(specific_tenant_id,))
     df_task_link = pd.read_sql(query_task_link, connection_unified)
 except Exception as e:
     print(f"Error querying database: {e}")
